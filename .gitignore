@@ -1,0 +1,33 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+_ReSharper*/
+*.DotSettings.user
+
+## Environment & Secrets
+.env
+*.env
+appsettings.Development.json
+appsettings.Local.json
+
+## Migrations (optional - keep if you want them tracked)
+# Migrations/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Rider / JetBrains
+.idea/
+
+## NuGet
+*.nupkg
+.nuget/
+
+## MAUI
+*.ipa
+*.apk
+*.aab

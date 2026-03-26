@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Pages/LoginPage.xaml -->
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="HospitalApp.Mobile.Pages.LoginPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#2563EB">
+
+    <ScrollView>
+        <Grid RowDefinitions="Auto,*" MinimumHeightRequest="700">
+
+            <!-- Top Hero Section -->
+            <Grid Grid.Row="0" Padding="30,60,30,40">
+                <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                    <!-- Logo -->
+                    <Frame BackgroundColor="White" CornerRadius="24" Padding="20"
+                           WidthRequest="90" HeightRequest="90" HorizontalOptions="Center"
+                           HasShadow="True">
+                        <Label Text="🏥" FontSize="42" HorizontalOptions="Center" VerticalOptions="Center"/>
+                    </Frame>
+                    <Label Text="MediCare+" FontSize="30" FontAttributes="Bold"
+                           TextColor="White" HorizontalOptions="Center"/>
+                    <Label Text="Your Health, Our Priority" FontSize="14"
+                           TextColor="#BFDBFE" HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Login Card -->
+            <Frame Grid.Row="1" CornerRadius="32" BackgroundColor="White"
+                   Padding="30,36" HasShadow="False" Margin="0">
+                <VerticalStackLayout Spacing="20">
+
+                    <Label Text="Welcome Back" FontSize="26" FontAttributes="Bold"
+                           TextColor="#1E293B"/>
+                    <Label Text="Sign in to your account" FontSize="14"
+                           TextColor="#64748B" Margin="0,-10,0,0"/>
+
+                    <!-- Email Field -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Email Address" FontSize="13" FontAttributes="Bold"
+                               TextColor="#374151"/>
+                        <Frame BorderColor="#E2E8F0" CornerRadius="12" Padding="0"
+                               HasShadow="False" BackgroundColor="#F9FAFB">
+                            <Grid ColumnDefinitions="Auto,*" Padding="14,0">
+                                <Label Grid.Column="0" Text="📧" FontSize="18" VerticalOptions="Center"/>
+                                <Entry Grid.Column="1" x:Name="EmailEntry" Placeholder="your@email.com"
+                                       BackgroundColor="Transparent" HeightRequest="52"
+                                       TextColor="#1E293B" PlaceholderColor="#9CA3AF"
+                                       FontSize="14" Keyboard="Email" Margin="8,0,0,0"/>
+                            </Grid>
+                        </Frame>
+                    </VerticalStackLayout>
+
+                    <!-- Password Field -->
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Password" FontSize="13" FontAttributes="Bold"
+                               TextColor="#374151"/>
+                        <Frame BorderColor="#E2E8F0" CornerRadius="12" Padding="0"
+                               HasShadow="False" BackgroundColor="#F9FAFB">
+                            <Grid ColumnDefinitions="Auto,*,Auto" Padding="14,0">
+                                <Label Grid.Column="0" Text="🔒" FontSize="18" VerticalOptions="Center"/>
+                                <Entry Grid.Column="1" x:Name="PasswordEntry" Placeholder="Enter password"
+                                       IsPassword="True" BackgroundColor="Transparent" HeightRequest="52"
+                                       TextColor="#1E293B" PlaceholderColor="#9CA3AF"
+                                       FontSize="14" Margin="8,0,0,0"/>
+                                <Label Grid.Column="2" Text="👁" FontSize="18" VerticalOptions="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="TogglePassword_Tapped"/>
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+                        </Frame>
+                    </VerticalStackLayout>
+
+                    <!-- Error Message -->
+                    <Frame x:Name="ErrorFrame" BackgroundColor="#FEE2E2" BorderColor="#FECACA"
+                           CornerRadius="10" Padding="12" IsVisible="False">
+                        <Label x:Name="ErrorLabel" TextColor="#DC2626" FontSize="13"/>
+                    </Frame>
+
+                    <!-- Login Button -->
+                    <Button x:Name="LoginButton" Text="Sign In" Style="{StaticResource PrimaryButton}"
+                            Clicked="LoginButton_Clicked" Margin="0,8,0,0"/>
+
+                    <!-- Register Link -->
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="4">
+                        <Label Text="New patient?" TextColor="#64748B" FontSize="14"/>
+                        <Label Text="Create Account" TextColor="#2563EB" FontSize="14"
+                               FontAttributes="Bold">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="CreateAccount_Tapped"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </HorizontalStackLayout>
+
+                    <!-- Loading Indicator -->
+                    <ActivityIndicator x:Name="LoadingIndicator" IsRunning="False"
+                                       IsVisible="False" Color="#2563EB" HorizontalOptions="Center"/>
+
+                </VerticalStackLayout>
+            </Frame>
+        </Grid>
+    </ScrollView>
+</ContentPage>
