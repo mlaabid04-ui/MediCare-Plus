@@ -46,6 +46,19 @@ public class Doctor
     public decimal Rating { get; set; } = 0;
     public int TotalReviews { get; set; } = 0;
     public string? HospitalSection { get; set; }
+    public string? HospitalName { get; set; }
+    public string? Address { get; set; }
+    public string? PostalCode { get; set; }
+    public string? City { get; set; }
+    public string? FirstNameAr { get; set; }
+    public string? LastNameAr { get; set; }
+    public string? AddressAr { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public string? Languages { get; set; }  // semicolon-separated: "Arabe;Français;Anglais"
+    public string? Diplomas { get; set; }   // newline-separated diplomas
+    public int SlotDurationMinutes { get; set; } = 30;
+    public string? CabinetImages { get; set; } // semicolon-separated URLs
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
@@ -89,6 +102,20 @@ public class Patient
     public string? InsuranceProvider { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+    public ICollection<PatientDocument> Documents { get; set; } = new List<PatientDocument>();
+}
+
+public class PatientDocument
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PatientId { get; set; }
+    public Patient? Patient { get; set; }
+    [Required] public string OriginalName { get; set; } = "";
+    [Required] public string StoredName { get; set; } = "";
+    [Required] public string ContentType { get; set; } = "";
+    public long FileSize { get; set; }
+    public string Category { get; set; } = "Autre"; // Analyse, Scanner, Radio, Rapport, Autre
+    public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class DoctorSchedule
@@ -100,6 +127,17 @@ public class DoctorSchedule
     public TimeSpan StartTime { get; set; } = new TimeSpan(9, 0, 0);
     public TimeSpan EndTime { get; set; } = new TimeSpan(16, 0, 0);
     public bool IsAvailable { get; set; } = true;
+    public string ConsultationType { get; set; } = "Présentiel"; // "Présentiel" | "Téléconsultation"
+}
+
+public class DoctorVacation
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid DoctorId { get; set; }
+    public Doctor? Doctor { get; set; }
+    public string Label { get; set; } = "";
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
 }
 
 public class Appointment

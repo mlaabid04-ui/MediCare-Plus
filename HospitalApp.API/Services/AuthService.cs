@@ -13,6 +13,7 @@ public interface IAuthService
 {
     Task<AuthResult> LoginAsync(string email, string password);
     Task<AuthResult> RegisterPatientAsync(RegisterPatientDto dto);
+    Task<AuthResult> RegisterDoctorAsync(RegisterDoctorDto dto);
     Task<string> GenerateTokenAsync(User user);
     Task<AuthResult> RefreshTokenAsync(string rawRefreshToken);
     Task RevokeRefreshTokenAsync(string rawRefreshToken);
@@ -197,6 +198,60 @@ public class AuthService : IAuthService
         return raw;
     }
 
+    public async Task<AuthResult> RegisterDoctorAsync(RegisterDoctorDto dto)
+    {
+        if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
+            return new AuthResult { Success = false, Message = "Cet email est déjà utilisé." };
+
+        var specialty = await _db.Specialties.FirstOrDefaultAsync(s => s.Id == dto.SpecialtyId);
+        if (specialty == null)
+            return new AuthResult { Success = false, Message = "Spécialité introuvable." };
+
+        var now = DateTime.UtcNow;
+        var user = new User
+        {
+            Email = dto.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+            Role = "Doctor",
+            IsActive = true,
+            CreatedAt = now,
+            NotificationsEnabled = true
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var doctor = new Doctor
+        {
+            UserId = user.Id,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            PhoneNumber = dto.PhoneNumber,
+            City = dto.City,
+            Address = dto.Address,
+            PostalCode = dto.PostalCode,
+            Languages = dto.Languages,
+            SpecialtyId = dto.SpecialtyId,
+            LicenseNumber = $"AUTO-{Guid.NewGuid().ToString()[..8].ToUpper()}",
+            CreatedAt = now
+        };
+        _db.Doctors.Add(doctor);
+        await _db.SaveChangesAsync();
+
+        var accessToken = await GenerateTokenAsync(user);
+        var refreshToken = await GenerateRefreshTokenAsync(user.Id);
+
+        return new AuthResult
+        {
+            Success = true,
+            Token = accessToken,
+            RefreshToken = refreshToken,
+            Role = "Doctor",
+            UserId = user.Id,
+            ProfileId = doctor.Id,
+            FullName = $"{doctor.FirstName} {doctor.LastName}"
+        };
+    }
+
     private static string HashToken(string raw)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
@@ -250,4 +305,18 @@ public class AuthResult
     public Guid? ProfileId { get; set; }
     public string? FullName { get; set; }
     public string? ProfileImageUrl { get; set; }
+}
+
+public class RegisterDoctorDto
+{
+    public string Email { get; set; } = "";
+    public string Password { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string PhoneNumber { get; set; } = "";
+    public string? City { get; set; }
+    public string? Address { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Languages { get; set; }
+    public Guid SpecialtyId { get; set; }
 }

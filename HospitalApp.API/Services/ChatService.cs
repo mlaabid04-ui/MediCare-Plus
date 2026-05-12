@@ -39,7 +39,7 @@ public class ChatService : IChatService
             .Where(m => m.SenderId == userId || m.ReceiverId == userId)
             .ToListAsync();
 
-        return messages
+        var contacts = messages
             .GroupBy(m => m.SenderId == userId ? m.ReceiverId : m.SenderId)
             .Select(g => {
                 var other = g.First().SenderId == userId ? g.First().Receiver! : g.First().Sender!;
@@ -55,6 +55,25 @@ public class ChatService : IChatService
             })
             .OrderByDescending(c => c.LastMessageTime)
             .ToList();
+
+        // Resolve display names from profiles
+        var contactUserIds = contacts.Select(c => c.UserId).ToList();
+        var doctors = await _db.Doctors.Where(d => contactUserIds.Contains(d.UserId))
+            .ToDictionaryAsync(d => d.UserId, d => $"Dr. {d.FirstName} {d.LastName}");
+        var patients = await _db.Patients.Where(p => contactUserIds.Contains(p.UserId))
+            .ToDictionaryAsync(p => p.UserId, p => $"{p.FirstName} {p.LastName}");
+        var nurses = await _db.Nurses.Where(n => contactUserIds.Contains(n.UserId))
+            .ToDictionaryAsync(n => n.UserId, n => $"{n.FirstName} {n.LastName}");
+
+        foreach (var c in contacts)
+        {
+            c.DisplayName = doctors.TryGetValue(c.UserId, out var dn) ? dn
+                : patients.TryGetValue(c.UserId, out var pn) ? pn
+                : nurses.TryGetValue(c.UserId, out var nn) ? nn
+                : null;
+        }
+
+        return contacts;
     }
 }
 
@@ -73,6 +92,7 @@ public class ChatContactDto
 {
     public Guid UserId { get; set; }
     public string Email { get; set; } = "";
+    public string? DisplayName { get; set; }
     public string? ProfileImageUrl { get; set; }
     public int UnreadCount { get; set; }
     public string LastMessage { get; set; } = "";

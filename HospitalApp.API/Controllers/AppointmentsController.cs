@@ -50,6 +50,14 @@ public class AppointmentsController : ControllerBase
         var result = await _service.UpdateAppointmentStatusAsync(id, dto.Status);
         return result ? Ok() : NotFound();
     }
+
+    [HttpPut("{id}/prescription")]
+    [Authorize(Roles = "Doctor")]
+    public async Task<IActionResult> WritePrescription(Guid id, [FromBody] WritePrescriptionDto dto)
+    {
+        var result = await _service.WritePrescriptionAsync(id, dto.Prescription);
+        return result ? Ok() : NotFound();
+    }
 }
 
 public class UpdateStatusDto { public string Status { get; set; } = ""; }

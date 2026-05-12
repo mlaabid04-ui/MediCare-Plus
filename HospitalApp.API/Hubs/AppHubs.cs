@@ -14,8 +14,13 @@ namespace HospitalApp.API.Hubs;
 public class ChatHub : Hub
 {
     private readonly AppDbContext _db;
+    private readonly IHubContext<NotificationHub> _notifHub;
 
-    public ChatHub(AppDbContext db) { _db = db; }
+    public ChatHub(AppDbContext db, IHubContext<NotificationHub> notifHub)
+    {
+        _db = db;
+        _notifHub = notifHub;
+    }
 
     public override async Task OnConnectedAsync()
     {
@@ -28,33 +33,71 @@ public class ChatHub : Hub
     public async Task SendMessage(string receiverId, string message, string? appointmentId = null)
     {
         var senderId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (senderId == null) return;
+        if (string.IsNullOrEmpty(senderId)) return;
+        if (string.IsNullOrEmpty(message)) return;
+
+        if (!Guid.TryParse(senderId, out var senderGuid) ||
+            !Guid.TryParse(receiverId, out var receiverGuid))
+            throw new HubException("Invalid user ID format.");
 
         var chatMsg = new ChatMessage
         {
-            SenderId = Guid.Parse(senderId),
-            ReceiverId = Guid.Parse(receiverId),
+            SenderId = senderGuid,
+            ReceiverId = receiverGuid,
             Message = message,
-            AppointmentId = appointmentId != null ? Guid.Parse(appointmentId) : null
+            AppointmentId = appointmentId != null && Guid.TryParse(appointmentId, out var apptId) ? apptId : null
         };
         _db.ChatMessages.Add(chatMsg);
+
+        // Save notification for receiver
+        var preview = message.StartsWith("[IMG:") ? "📷 Sent a photo"
+                    : message.StartsWith("[FILE:") ? "📄 Sent a file"
+                    : message.Length > 60 ? message[..60] + "…"
+                    : message;
+
+        var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserId == senderGuid);
+        var patient = await _db.Patients.FirstOrDefaultAsync(p => p.UserId == senderGuid);
+        var nurse = await _db.Nurses.FirstOrDefaultAsync(n => n.UserId == senderGuid);
+        var senderName = doctor != null ? $"Dr. {doctor.FirstName} {doctor.LastName}"
+            : patient != null ? $"{patient.FirstName} {patient.LastName}"
+            : nurse != null ? $"{nurse.FirstName} {nurse.LastName}"
+            : (await _db.Users.FindAsync(senderGuid))?.Email ?? senderId;
+
+        var notification = new Notification
+        {
+            UserId = receiverGuid,
+            Title = $"New message from {senderName}",
+            Message = preview,
+            Type = "Chat"
+        };
+        _db.Notifications.Add(notification);
         await _db.SaveChangesAsync();
 
-        var sender = await _db.Users.FindAsync(Guid.Parse(senderId));
         var msgDto = new
         {
             id = chatMsg.Id,
             senderId = senderId,
-            senderName = sender?.Email,
+            senderName,
             message = message,
             sentAt = chatMsg.SentAt,
             isRead = false
         };
 
-        // Send to receiver
+        // Deliver message in real-time
         await Clients.Group(receiverId).SendAsync("ReceiveMessage", msgDto);
-        // Send back to sender
         await Clients.Caller.SendAsync("MessageSent", msgDto);
+
+        // Push notification to receiver in real-time
+        await _notifHub.Clients.Group(receiverId).SendAsync("ReceiveNotification", new
+        {
+            id = notification.Id,
+            title = notification.Title,
+            message = preview,
+            type = "Chat",
+            isRead = false,
+            senderId = senderId,
+            createdAt = notification.CreatedAt
+        });
     }
 
     public async Task MarkMessagesRead(string senderId)
@@ -113,30 +156,39 @@ public class VideoCallHub : Hub
         return base.OnDisconnectedAsync(ex);
     }
 
-    public async Task InitiateCall(string targetUserId, string appointmentId)
+    public async Task InitiateCall(string targetUserId, bool isVideo, string? appointmentId = null)
     {
         var callerId = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (callerId == null) return;
 
+        var callerGuid = Guid.Parse(callerId);
+        var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserId == callerGuid);
+        var patient = await _db.Patients.FirstOrDefaultAsync(p => p.UserId == callerGuid);
+        var nurse = await _db.Nurses.FirstOrDefaultAsync(n => n.UserId == callerGuid);
+        var callerName = doctor != null ? $"Dr. {doctor.FirstName} {doctor.LastName}"
+            : patient != null ? $"{patient.FirstName} {patient.LastName}"
+            : nurse != null ? $"{nurse.FirstName} {nurse.LastName}"
+            : (await _db.Users.FindAsync(callerGuid))?.Email ?? callerId;
+
         var session = new VideoCallSession
         {
-            AppointmentId = Guid.Parse(appointmentId),
-            CallerId = Guid.Parse(callerId),
+            AppointmentId = appointmentId != null ? Guid.Parse(appointmentId) : null,
+            CallerId = callerGuid,
             ReceiverId = Guid.Parse(targetUserId),
             Status = "Pending"
         };
         _db.VideoCallSessions.Add(session);
         await _db.SaveChangesAsync();
 
-        var caller = await _db.Users.FindAsync(Guid.Parse(callerId));
         if (_userConnections.TryGetValue(targetUserId, out var connId))
         {
             await Clients.Client(connId).SendAsync("IncomingCall", new
             {
                 sessionId = session.Id,
                 callerId,
-                callerName = caller?.Email,
-                roomId = session.RoomId
+                callerName,
+                roomId = session.RoomId,
+                isVideo
             });
         }
     }

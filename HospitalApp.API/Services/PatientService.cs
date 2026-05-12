@@ -47,10 +47,21 @@ public class PatientService : IPatientService
     {
         var p = await _db.Patients.FindAsync(id);
         if (p == null) return;
-        p.PhoneNumber = dto.PhoneNumber ?? p.PhoneNumber;
-        p.Address = dto.Address ?? p.Address;
-        p.Allergies = dto.Allergies ?? p.Allergies;
-        p.CurrentMedications = dto.CurrentMedications ?? p.CurrentMedications;
+        if (dto.FirstName != null)          p.FirstName = dto.FirstName;
+        if (dto.LastName != null)           p.LastName = dto.LastName;
+        if (dto.Gender != null)             p.Gender = dto.Gender;
+        if (dto.PhoneNumber != null)        p.PhoneNumber = dto.PhoneNumber;
+        if (dto.Address != null)            p.Address = dto.Address;
+        if (dto.City != null)               p.City = dto.City;
+        if (dto.BloodType != null)          p.BloodType = dto.BloodType;
+        if (dto.Height.HasValue)            p.Height = dto.Height;
+        if (dto.Weight.HasValue)            p.Weight = dto.Weight;
+        if (dto.Allergies != null)          p.Allergies = dto.Allergies;
+        if (dto.ChronicDiseases != null)    p.ChronicDiseases = dto.ChronicDiseases;
+        if (dto.PreviousIllnesses != null)  p.PreviousIllnesses = dto.PreviousIllnesses;
+        if (dto.CurrentMedications != null) p.CurrentMedications = dto.CurrentMedications;
+        if (dto.InsuranceProvider != null)  p.InsuranceProvider = dto.InsuranceProvider;
+        if (dto.InsuranceNumber != null)    p.InsuranceNumber = dto.InsuranceNumber;
         await _db.SaveChangesAsync();
     }
 }
@@ -81,8 +92,19 @@ public class PatientDetailDto
 
 public class UpdatePatientDto
 {
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Gender { get; set; }
     public string? PhoneNumber { get; set; }
     public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? BloodType { get; set; }
+    public decimal? Height { get; set; }
+    public decimal? Weight { get; set; }
     public string? Allergies { get; set; }
+    public string? ChronicDiseases { get; set; }
+    public string? PreviousIllnesses { get; set; }
     public string? CurrentMedications { get; set; }
+    public string? InsuranceProvider { get; set; }
+    public string? InsuranceNumber { get; set; }
 }

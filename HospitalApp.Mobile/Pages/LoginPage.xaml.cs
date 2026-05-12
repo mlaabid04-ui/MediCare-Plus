@@ -34,6 +34,14 @@ public partial class LoginPage : ContentPage
 
             if (result.Success)
             {
+                // Flavor guard: reject login if role doesn't match this APK
+                var allowed = AppConfig.AllowedRole;
+                if (!string.IsNullOrEmpty(allowed) && result.Role != allowed)
+                {
+                    ShowError($"Cette application est réservée aux {(allowed == "Doctor" ? "médecins" : "patients")}.");
+                    return;
+                }
+
                 Preferences.Set("Token", result.Token ?? "");
                 Preferences.Set("UserId",
                     result.UserId?.ToString() ?? "");
@@ -44,18 +52,24 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("ProfileImageUrl",
                     result.ProfileImageUrl ?? "");
 
-                Application.Current!.MainPage = result.Role switch
+                var signalR = ServiceHelper.GetService<SignalRService>();
+                await signalR.ConnectAsync();
+
+                Page nextPage;
+                if (result.Role == "Doctor")
                 {
-                    "Doctor" => new NavigationPage(
-                        new DoctorDashboardPage(
-                            ServiceHelper.GetService<ApiService>())),
-                    "Admin" => new NavigationPage(
-                        new AdminDashboardPage(
-                            ServiceHelper.GetService<ApiService>())),
-                    _ => new NavigationPage(
-                        new PatientDashboardPage(
-                            ServiceHelper.GetService<ApiService>()))
-                };
+                    var doctorId = result.ProfileId ?? Guid.Empty;
+                    var doctorDetail = await ServiceHelper.GetService<ApiService>().GetDoctorByIdAsync(doctorId);
+                    nextPage = doctorDetail?.IsProfileComplete == false
+                        ? new DoctorProfileSetupPage(ServiceHelper.GetService<ApiService>())
+                        : new DoctorDashboardPage(ServiceHelper.GetService<ApiService>(), signalR);
+                }
+                else if (result.Role == "Admin")
+                    nextPage = new AdminDashboardPage(ServiceHelper.GetService<ApiService>());
+                else
+                    nextPage = new PatientDashboardPage(ServiceHelper.GetService<ApiService>(), signalR);
+
+                Application.Current!.MainPage = new NavigationPage(nextPage);
             }
             else
                 ShowError(result.Message ?? "Login failed");

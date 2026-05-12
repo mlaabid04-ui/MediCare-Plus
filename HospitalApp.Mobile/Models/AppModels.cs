@@ -16,6 +16,35 @@ public class AuthResult
     public string? ProfileImageUrl { get; set; }
 }
 
+public class RegisterDoctorRequest
+{
+    public string Email { get; set; } = "";
+    public string Password { get; set; } = "";
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string PhoneNumber { get; set; } = "";
+    public string? City { get; set; }
+    public string? Address { get; set; }
+    public string? PostalCode { get; set; }
+    public string? Languages { get; set; }
+    public Guid SpecialtyId { get; set; }
+}
+
+// Shared wizard data — passed between the 3 registration steps
+public class DoctorRegistrationData
+{
+    public string FirstName { get; set; } = "";
+    public string LastName { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string City { get; set; } = "";
+    public Guid SpecialtyId { get; set; }
+    public string SpecialtyName { get; set; } = "";
+    public string PhoneNumber { get; set; } = "";
+    public string Address { get; set; } = "";
+    public string PostalCode { get; set; } = "";
+    public string Languages { get; set; } = "";
+}
+
 public class RegisterPatientRequest
 {
     public string Email { get; set; } = "";
@@ -53,10 +82,18 @@ public class DoctorListDto
     public int YearsOfExperience { get; set; }
     public decimal ConsultationFee { get; set; }
     public string? HospitalSection { get; set; }
+    public string? HospitalName { get; set; }
+    public string? City { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
     // Computed display
     public string RatingDisplay => $"⭐ {Rating:F1}";
-    public string FeeDisplay => $"${ConsultationFee}/session";
-    public string ExperienceDisplay => $"{YearsOfExperience} yrs exp.";
+    public string FeeDisplay => $"{ConsultationFee} MAD/séance";
+    public string ExperienceDisplay => $"{YearsOfExperience} ans exp.";
+    public string LocationDisplay => string.IsNullOrEmpty(City) ? (HospitalName ?? "") : (HospitalName != null ? $"{HospitalName}, {City}" : City);
+    // Distance from user (set by DoctorListPage after geolocation)
+    public double? DistanceKm { get; set; }
+    public string DistanceDisplay => DistanceKm.HasValue ? $"{DistanceKm.Value:F1} km" : "";
 }
 
 public class DoctorDetailDto : DoctorListDto
@@ -67,6 +104,52 @@ public class DoctorDetailDto : DoctorListDto
     public string? Biography { get; set; }
     public string? PhoneNumber { get; set; }
     public string LicenseNumber { get; set; } = "";
+    public string? Languages { get; set; }   // "Arabe;Français;Anglais"
+    public string? Diplomas { get; set; }    // newline-separated
+    public string? Address { get; set; }
+    public int SlotDurationMinutes { get; set; } = 30;
+    public string? CabinetImages { get; set; }
+    public bool IsProfileComplete { get; set; }
+    public List<string> LanguageList => Languages?.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList() ?? new();
+    public List<string> DiplomaList  => Diplomas?.Split('\n',  StringSplitOptions.RemoveEmptyEntries).ToList() ?? new();
+    public List<string> CabinetImageList => CabinetImages?.Split(';', StringSplitOptions.RemoveEmptyEntries).ToList() ?? new();
+}
+
+public class DoctorScheduleItemDto
+{
+    public int DayOfWeek { get; set; }
+    public TimeSpan StartTime { get; set; }
+    public TimeSpan EndTime { get; set; }
+    public bool IsAvailable { get; set; }
+    public string ConsultationType { get; set; } = "Présentiel";
+}
+
+public class DoctorVacationDto
+{
+    public Guid Id { get; set; }
+    public string Label { get; set; } = "";
+    public DateTime StartDate { get; set; }
+    public DateTime EndDate { get; set; }
+}
+
+public class UpdateDoctorProfileRequest
+{
+    public string? PhoneNumber { get; set; }
+    public string? Biography { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? HospitalName { get; set; }
+    public string? HospitalSection { get; set; }
+    public decimal? ConsultationFee { get; set; }
+    public int? YearsOfExperience { get; set; }
+    public string? Languages { get; set; }
+    public string? Diplomas { get; set; }
+    public int? SlotDurationMinutes { get; set; }
+    public string? FirstNameAr { get; set; }
+    public string? LastNameAr { get; set; }
+    public string? AddressAr { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
 }
 
 public class TimeSlotDto
@@ -90,6 +173,8 @@ public class AppointmentDto
     public string? DoctorName { get; set; }
     public string? DoctorSpecialty { get; set; }
     public string? DoctorImageUrl { get; set; }
+    public Guid? DoctorUserId { get; set; }
+    public Guid? PatientUserId { get; set; }
     public DateTime AppointmentDate { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
@@ -191,6 +276,7 @@ public class NotificationDto
     public string Type { get; set; } = "";
     public bool IsRead { get; set; }
     public Guid? AppointmentId { get; set; }
+    public string? SenderId { get; set; }   // set for Chat notifications
     public DateTime CreatedAt { get; set; }
     public string TypeIcon => Type switch
     {
@@ -275,12 +361,87 @@ public class UserListDto
     public Color StatusColor => IsActive ? Color.FromArgb("#10B981") : Color.FromArgb("#EF4444");
 }
 
+public class PatientDocumentDto
+{
+    public Guid Id { get; set; }
+    public string OriginalName { get; set; } = "";
+    public string ContentType { get; set; } = "";
+    public long FileSize { get; set; }
+    public string Category { get; set; } = "Autre";
+    public DateTime UploadedAt { get; set; }
+    public string FileUrl { get; set; } = "";
+    // Computed
+    public string SizeDisplay => FileSize switch
+    {
+        < 1024 => $"{FileSize} o",
+        < 1024 * 1024 => $"{FileSize / 1024.0:F1} Ko",
+        _ => $"{FileSize / (1024.0 * 1024):F1} Mo"
+    };
+    public string CategoryIcon => Category switch
+    {
+        "Analyse"  => "🔬",
+        "Scanner"  => "📡",
+        "Radio"    => "☢️",
+        "Rapport"  => "📄",
+        _          => "📎"
+    };
+    public string TypeIcon => ContentType switch
+    {
+        var t when t.StartsWith("image/") => "🖼️",
+        "application/pdf"                 => "📕",
+        _                                 => "📁"
+    };
+    public string DateDisplay => UploadedAt.ToString("dd MMM yyyy");
+}
+
+public class PrescriptionDto
+{
+    public Guid AppointmentId { get; set; }
+    public string? DoctorName { get; set; }
+    public string? DoctorSpecialty { get; set; }
+    public DateTime AppointmentDate { get; set; }
+    public string Prescription { get; set; } = "";
+    public string ConsultationType { get; set; } = "";
+    public string TypeIcon => ConsultationType == "Video" ? "📹" : "🏥";
+    public string DateDisplay => AppointmentDate.ToString("dd MMM yyyy");
+}
+
+public class UpdatePatientRequest
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Gender { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? Address { get; set; }
+    public string? City { get; set; }
+    public string? BloodType { get; set; }
+    public decimal? Height { get; set; }
+    public decimal? Weight { get; set; }
+    public string? Allergies { get; set; }
+    public string? ChronicDiseases { get; set; }
+    public string? PreviousIllnesses { get; set; }
+    public string? CurrentMedications { get; set; }
+    public string? InsuranceProvider { get; set; }
+    public string? InsuranceNumber { get; set; }
+}
+
 public class IncomingCallDto
 {
     public string SessionId { get; set; } = "";
     public string CallerId { get; set; } = "";
     public string CallerName { get; set; } = "";
     public string RoomId { get; set; } = "";
+    public bool IsVideo { get; set; } = true;
+}
+
+public class IncomingChatMessageDto
+{
+    public Guid Id { get; set; }
+    public string SenderId { get; set; } = "";
+    public string? SenderName { get; set; }
+    public string Message { get; set; } = "";
+    public DateTime SentAt { get; set; }
+    public bool IsRead { get; set; }
 }
 
 public class SpecialtyDto

@@ -10,7 +10,12 @@ namespace HospitalApp.API.Controllers;
 public class PatientsController : ControllerBase
 {
     private readonly IPatientService _service;
-    public PatientsController(IPatientService svc) { _service = svc; }
+    private readonly IAppointmentService _apptService;
+    public PatientsController(IPatientService svc, IAppointmentService apptService)
+    {
+        _service = svc;
+        _apptService = apptService;
+    }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(Guid id)
@@ -25,4 +30,8 @@ public class PatientsController : ControllerBase
         await _service.UpdatePatientAsync(id, dto);
         return Ok();
     }
+
+    [HttpGet("{id}/prescriptions")]
+    public async Task<IActionResult> GetPrescriptions(Guid id)
+        => Ok(await _apptService.GetPatientPrescriptionsAsync(id));
 }

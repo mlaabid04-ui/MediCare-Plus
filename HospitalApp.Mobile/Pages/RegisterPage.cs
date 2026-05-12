@@ -1,464 +1,412 @@
-﻿using HospitalApp.Mobile.Models;
+using HospitalApp.Mobile.Models;
 using HospitalApp.Mobile.Services;
 
 namespace HospitalApp.Mobile.Pages;
 
+// =============================================
+// REGISTER PAGE  –  Doctori.ma style
+// =============================================
 public class RegisterPage : ContentPage
 {
     private readonly ApiService _api;
     private string _selectedGender = "";
 
-    // Fields
-    private Entry _firstNameEntry, _lastNameEntry, _emailEntry,
-                  _passwordEntry, _confirmPasswordEntry, _phoneEntry,
-                  _cityEntry, _heightEntry, _weightEntry,
-                  _insuranceProviderEntry, _insuranceNumberEntry,
-                  _emergencyNameEntry, _emergencyPhoneEntry;
-    private DatePicker _birthDatePicker;
-    private Picker _bloodTypePicker;
-    private Editor _allergiesEditor, _chronicEditor,
-                   _previousIllnessesEditor, _medicationsEditor;
-    private Frame _maleBtn, _femaleBtn, _otherBtn, _errorFrame;
-    private Label _errorLabel;
+    private Entry _firstNameEntry = new(), _lastNameEntry = new();
+    private Entry _emailEntry = new(), _passwordEntry = new();
+    private Entry _phoneEntry = new();
+    private DatePicker _birthDatePicker = new();
+    private Picker _genderPicker = new();
+    private Frame _maleBtn = new(), _femaleBtn = new();
+    private Frame _errorFrame = new();
+    private Label _errorLabel = new();
+    private bool _acceptCgu, _acceptPrivacy;
+    private Frame _cguCheck = new(), _privacyCheck = new();
+    private Button _registerBtn = new();
+    private ActivityIndicator _spinner = new();
+
+    private static readonly Color Teal   = Color.FromArgb("#4A8B9E");
+    private static readonly Color TealDk = Color.FromArgb("#3A7A8C");
+    private static readonly Color Navy   = Color.FromArgb("#1E2D4A");
+    private static readonly Color Border = Color.FromArgb("#D1D5DB");
+    private static readonly Color Sub    = Color.FromArgb("#6B7280");
 
     public RegisterPage(ApiService api)
     {
         _api = api;
-        Title = "Create Account";
-        BackgroundColor = Color.FromArgb("#F8FAFC");
+        NavigationPage.SetHasNavigationBar(this, false);
+        BackgroundColor = Teal;
         BuildUI();
     }
 
     private void BuildUI()
     {
-        var scroll = new ScrollView();
-        var stack = new VerticalStackLayout
+        var root = new Grid
         {
-            Padding = new Thickness(20, 16),
-            Spacing = 12
-        };
-
-        // Header
-        stack.Children.Add(CreateSectionHeader("👤", "Patient Registration",
-            "Fill in your complete medical profile"));
-
-        // Personal Info
-        stack.Children.Add(CreateSectionCard("👤 Personal Information",
-            BuildPersonalSection()));
-
-        // Credentials
-        stack.Children.Add(CreateSectionCard("🔐 Account Credentials",
-            BuildCredentialsSection()));
-
-        // Medical Info
-        stack.Children.Add(CreateSectionCard("🩺 Medical Information",
-            BuildMedicalSection()));
-
-        // Insurance
-        stack.Children.Add(CreateSectionCard("🛡️ Insurance & Emergency",
-            BuildInsuranceSection()));
-
-        // Error frame
-        _errorLabel = new Label
-        {
-            TextColor = Color.FromArgb("#DC2626"),
-            FontSize = 13
-        };
-        _errorFrame = new Frame
-        {
-            BackgroundColor = Color.FromArgb("#FEE2E2"),
-            BorderColor = Color.FromArgb("#FECACA"),
-            CornerRadius = 12,
-            Padding = new Thickness(14),
-            IsVisible = false,
-            HasShadow = false,
-            Content = _errorLabel
-        };
-        stack.Children.Add(_errorFrame);
-
-        // Register Button
-        var registerBtn = new Button
-        {
-            Text = "Create My Account 🚀",
-            BackgroundColor = Color.FromArgb("#2563EB"),
-            TextColor = Colors.White,
-            FontSize = 15,
-            FontAttributes = FontAttributes.Bold,
-            CornerRadius = 12,
-            HeightRequest = 52,
-            Margin = new Thickness(0, 8, 0, 0)
-        };
-        registerBtn.Clicked += RegisterButton_Clicked;
-        stack.Children.Add(registerBtn);
-        stack.Children.Add(new BoxView
-        {
-            HeightRequest = 40,
-            Color = Colors.Transparent
-        });
-
-        scroll.Content = stack;
-        Content = scroll;
-    }
-
-    private Frame CreateSectionHeader(string emoji, string title, string subtitle)
-    {
-        return new Frame
-        {
-            BackgroundColor = Colors.White,
-            CornerRadius = 16,
-            Padding = new Thickness(16),
-            HasShadow = true,
-            BorderColor = Color.FromArgb("#E2E8F0"),
-            Content = new HorizontalStackLayout
+            RowDefinitions = new RowDefinitionCollection
             {
-                Spacing = 14,
-                Children =
-                {
-                    new Frame
-                    {
-                        BackgroundColor = Color.FromArgb("#DBEAFE"),
-                        CornerRadius = 20, Padding = new Thickness(12),
-                        WidthRequest = 52, HeightRequest = 52,
-                        HasShadow = false, BorderColor = Colors.Transparent,
-                        Content = new Label
-                        {
-                            Text = emoji, FontSize = 24,
-                            HorizontalOptions = LayoutOptions.Center,
-                            VerticalOptions = LayoutOptions.Center
-                        }
-                    },
-                    new VerticalStackLayout
-                    {
-                        VerticalOptions = LayoutOptions.Center,
-                        Children =
-                        {
-                            new Label { Text = title, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1E293B") },
-                            new Label { Text = subtitle, FontSize = 12, TextColor = Color.FromArgb("#64748B") }
-                        }
-                    }
-                }
-            }
+                new(GridLength.Auto),  // teal header with logo
+                new(GridLength.Star)   // white card
+            },
+            BackgroundColor = Teal
         };
-    }
 
-    private Frame CreateSectionCard(string title, View content)
-    {
-        var inner = new VerticalStackLayout { Spacing = 14 };
-        inner.Children.Add(new Label
+        // ── TEAL HEADER ───────────────────────────────────────────────
+        var header = new VerticalStackLayout
         {
-            Text = title,
-            FontSize = 16,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Color.FromArgb("#1E293B")
+            Padding = new Thickness(24, 56, 24, 32),
+            Spacing = 14,
+            HorizontalOptions = LayoutOptions.Center
+        };
+
+        var logoRow = new HorizontalStackLayout { Spacing = 10, HorizontalOptions = LayoutOptions.Center };
+        logoRow.Children.Add(new Frame
+        {
+            WidthRequest = 38, HeightRequest = 38, CornerRadius = 19,
+            BackgroundColor = Colors.White.WithAlpha(0.25f),
+            BorderColor = Colors.Transparent, HasShadow = false, Padding = 0,
+            Content = new Label { Text = "🩺", FontSize = 20,
+                HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
         });
-        inner.Children.Add(content);
-        return new Frame
+        logoRow.Children.Add(new Label
         {
+            Text = "MediCare+", FontSize = 24, FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White, VerticalOptions = LayoutOptions.Center
+        });
+        header.Children.Add(logoRow);
+
+        header.Children.Add(new Label
+        {
+            Text = "Créer votre dossier médical",
+            FontSize = 22, FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White, HorizontalOptions = LayoutOptions.Center,
+            HorizontalTextAlignment = TextAlignment.Center
+        });
+
+        root.Children.Add(header);
+
+        // ── WHITE CARD ────────────────────────────────────────────────
+        var card = new Frame
+        {
+            CornerRadius = 28,
             BackgroundColor = Colors.White,
-            CornerRadius = 16,
-            Padding = new Thickness(16),
-            HasShadow = true,
-            BorderColor = Color.FromArgb("#E2E8F0"),
-            Content = inner
+            HasShadow = false, BorderColor = Colors.Transparent,
+            Padding = new Thickness(24, 28, 24, 40),
+            Margin = new Thickness(0, -10, 0, 0)
         };
-    }
 
-    private View BuildPersonalSection()
-    {
-        _firstNameEntry = CreateEntry("First Name");
-        _lastNameEntry = CreateEntry("Last Name");
-        _phoneEntry = CreateEntry("Phone Number", Keyboard.Telephone);
-        _cityEntry = CreateEntry("City");
-        _birthDatePicker = new DatePicker
+        var cardStack = new VerticalStackLayout { Spacing = 16 };
+
+        cardStack.Children.Add(new Label
         {
-            Format = "dd/MM/yyyy",
-            TextColor = Color.FromArgb("#1E293B"),
-            BackgroundColor = Color.FromArgb("#F9FAFB")
-        };
+            Text = "C'est gratuit et le sera toujours.",
+            FontSize = 14, TextColor = Sub,
+            Margin = new Thickness(0, 0, 0, 4)
+        });
 
-        // Gender buttons
-        _maleBtn = CreateGenderBtn("♂ Male", "Male");
-        _femaleBtn = CreateGenderBtn("♀ Female", "Female");
-        _otherBtn = CreateGenderBtn("Other", "Other");
-        var genderRow = new HorizontalStackLayout
-        {
-            Spacing = 10,
-            Children = { _maleBtn, _femaleBtn, _otherBtn }
-        };
-
+        // ── Prénom + Nom ──────────────────────────────────────────────
+        _firstNameEntry = DEntry("Prénom *");
+        _lastNameEntry  = DEntry("Nom *");
         var nameGrid = new Grid
         {
             ColumnDefinitions = new ColumnDefinitionCollection
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
-            ColumnSpacing = 12,
-            Children = { _firstNameEntry }
-        };
-        Grid.SetColumn(_lastNameEntry, 1);
-        nameGrid.Children.Add(_lastNameEntry);
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(nameGrid);
-        stack.Children.Add(CreateFieldGroup("Date of Birth *", _birthDatePicker));
-        stack.Children.Add(CreateFieldGroup("Gender *", genderRow));
-        stack.Children.Add(CreateFieldGroup("Phone Number *", _phoneEntry));
-        stack.Children.Add(CreateFieldGroup("City", _cityEntry));
-        return stack;
-    }
-
-    private View BuildCredentialsSection()
-    {
-        _emailEntry = CreateEntry("Email Address", Keyboard.Email);
-        _passwordEntry = CreateEntry("Password");
-        _passwordEntry.IsPassword = true;
-        _confirmPasswordEntry = CreateEntry("Confirm Password");
-        _confirmPasswordEntry.IsPassword = true;
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(CreateFieldGroup("Email *", _emailEntry));
-        stack.Children.Add(CreateFieldGroup("Password *", _passwordEntry));
-        stack.Children.Add(CreateFieldGroup("Confirm Password *",
-            _confirmPasswordEntry));
-        return stack;
-    }
-
-    private View BuildMedicalSection()
-    {
-        _heightEntry = CreateEntry("170", Keyboard.Numeric);
-        _weightEntry = CreateEntry("70", Keyboard.Numeric);
-        _bloodTypePicker = new Picker
-        {
-            TextColor = Color.FromArgb("#1E293B"),
-            BackgroundColor = Color.FromArgb("#F9FAFB"),
-            Title = "Select blood type"
-        };
-        foreach (var bt in new[] { "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-" })
-            _bloodTypePicker.Items.Add(bt);
-
-        _allergiesEditor = CreateEditor("e.g. Penicillin, Peanuts...");
-        _chronicEditor = CreateEditor("e.g. Diabetes, Hypertension...");
-        _previousIllnessesEditor = CreateEditor("List previous conditions...");
-        _medicationsEditor = CreateEditor("List current medications...");
-
-        var bwGrid = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitionCollection
-            {
-                new ColumnDefinition { Width = GridLength.Star },
-                new ColumnDefinition { Width = GridLength.Star }
-            },
+                { new(GridLength.Star), new(GridLength.Star) },
             ColumnSpacing = 12
         };
-        var btStack = new VerticalStackLayout
+        nameGrid.Children.Add(InputBox("👤", _firstNameEntry));
+        var lastBox = InputBox("👤", _lastNameEntry);
+        Grid.SetColumn(lastBox, 1);
+        nameGrid.Children.Add(lastBox);
+        cardStack.Children.Add(nameGrid);
+
+        // ── Genre ─────────────────────────────────────────────────────
+        _maleBtn   = GenderBtn("♂  Homme", "Homme");
+        _femaleBtn = GenderBtn("♀  Femme", "Femme");
+        var genderRow = new Grid
         {
-            Spacing = 4,
-            Children =
-            {
-                new Label { Text = "Blood Type", FontSize = 12, TextColor = Color.FromArgb("#374151"), FontAttributes = FontAttributes.Bold },
-                _bloodTypePicker
-            }
+            ColumnDefinitions = new ColumnDefinitionCollection
+                { new(GridLength.Star), new(GridLength.Star) },
+            ColumnSpacing = 12
         };
-        var htStack = new VerticalStackLayout
+        genderRow.Children.Add(_maleBtn);
+        Grid.SetColumn(_femaleBtn, 1); genderRow.Children.Add(_femaleBtn);
+        cardStack.Children.Add(LabeledField("Genre *", genderRow));
+
+        // ── Téléphone ─────────────────────────────────────────────────
+        _phoneEntry = DEntry("Téléphone mobile *", Keyboard.Telephone);
+        var phoneBox = new Grid
         {
-            Spacing = 4,
-            Children =
-            {
-                new Label { Text = "Height (cm)", FontSize = 12, TextColor = Color.FromArgb("#374151"), FontAttributes = FontAttributes.Bold },
-                _heightEntry
-            }
+            ColumnDefinitions = new ColumnDefinitionCollection
+                { new(GridLength.Auto), new(GridLength.Star) },
+            ColumnSpacing = 0
         };
-        bwGrid.Children.Add(btStack);
-        Grid.SetColumn(htStack, 1);
-        bwGrid.Children.Add(htStack);
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(bwGrid);
-        stack.Children.Add(CreateFieldGroup("Weight (kg)", _weightEntry));
-        stack.Children.Add(CreateFieldGroup("Known Allergies", _allergiesEditor));
-        stack.Children.Add(CreateFieldGroup("Chronic Diseases", _chronicEditor));
-        stack.Children.Add(CreateFieldGroup("Previous Illnesses",
-            _previousIllnessesEditor));
-        stack.Children.Add(CreateFieldGroup("Current Medications",
-            _medicationsEditor));
-        return stack;
-    }
-
-    private View BuildInsuranceSection()
-    {
-        _insuranceProviderEntry = CreateEntry("e.g. Blue Cross");
-        _insuranceNumberEntry = CreateEntry("INS-XXXXXXXX");
-        _emergencyNameEntry = CreateEntry("Contact person name");
-        _emergencyPhoneEntry = CreateEntry("+1 234 567 890",
-            Keyboard.Telephone);
-
-        var stack = new VerticalStackLayout { Spacing = 12 };
-        stack.Children.Add(CreateFieldGroup("Insurance Provider",
-            _insuranceProviderEntry));
-        stack.Children.Add(CreateFieldGroup("Insurance Number",
-            _insuranceNumberEntry));
-        stack.Children.Add(CreateFieldGroup("Emergency Contact Name",
-            _emergencyNameEntry));
-        stack.Children.Add(CreateFieldGroup("Emergency Contact Phone",
-            _emergencyPhoneEntry));
-        return stack;
-    }
-
-    private View CreateFieldGroup(string label, View field)
-    {
-        return new VerticalStackLayout
+        var flagBadge = new Frame
         {
-            Spacing = 6,
-            Children =
-            {
-                new Label
-                {
-                    Text = label, FontSize = 12,
-                    TextColor = Color.FromArgb("#374151"),
-                    FontAttributes = FontAttributes.Bold
-                },
-                field
-            }
-        };
-    }
-
-    private Entry CreateEntry(string placeholder,
-        Keyboard? keyboard = null)
-    {
-        return new Entry
-        {
-            Placeholder = placeholder,
-            BackgroundColor = Color.FromArgb("#F9FAFB"),
-            TextColor = Color.FromArgb("#1E293B"),
-            PlaceholderColor = Color.FromArgb("#9CA3AF"),
-            FontSize = 14,
-            HeightRequest = 48,
-            Keyboard = keyboard ?? Keyboard.Default
-        };
-    }
-
-    private Editor CreateEditor(string placeholder)
-    {
-        return new Editor
-        {
-            Placeholder = placeholder,
-            HeightRequest = 80,
-            BackgroundColor = Color.FromArgb("#F9FAFB"),
-            TextColor = Color.FromArgb("#1E293B"),
-            PlaceholderColor = Color.FromArgb("#9CA3AF"),
-            FontSize = 14,
-            AutoSize = EditorAutoSizeOption.TextChanges
-        };
-    }
-
-    private Frame CreateGenderBtn(string text, string gender)
-    {
-        var frame = new Frame
-        {
-            BackgroundColor = Color.FromArgb("#F3F4F6"),
-            CornerRadius = 10,
-            Padding = new Thickness(14, 10),
-            BorderColor = Color.FromArgb("#E2E8F0"),
+            BackgroundColor = Colors.White, BorderColor = Border,
+            CornerRadius = 8, Padding = new Thickness(10, 0),
             HasShadow = false,
+            Content = new HorizontalStackLayout
+            {
+                Spacing = 4, VerticalOptions = LayoutOptions.Center,
+                Children =
+                {
+                    new Label { Text = "🇲🇦", FontSize = 18, VerticalOptions = LayoutOptions.Center },
+                    new Label { Text = "+212", FontSize = 13, TextColor = Navy, VerticalOptions = LayoutOptions.Center }
+                }
+            }
+        };
+        var phoneField = new Frame
+        {
+            BorderColor = Border, CornerRadius = 8, Padding = new Thickness(12, 0),
+            HasShadow = false, BackgroundColor = Colors.White,
+            Content = _phoneEntry
+        };
+        phoneBox.Children.Add(flagBadge);
+        Grid.SetColumn(phoneField, 1); phoneBox.Children.Add(phoneField);
+        cardStack.Children.Add(LabeledField("Téléphone mobile *", phoneBox));
+
+        // ── Date de naissance ─────────────────────────────────────────
+        _birthDatePicker = new DatePicker
+        {
+            Format = "dd/MM/yyyy", MaximumDate = DateTime.Today,
+            TextColor = Navy, BackgroundColor = Colors.Transparent
+        };
+        var dobBox = new Frame
+        {
+            BorderColor = Border, CornerRadius = 8, Padding = new Thickness(12, 0),
+            HasShadow = false, BackgroundColor = Colors.White
+        };
+        var dobGrid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection { new(GridLength.Auto), new(GridLength.Star) },
+            Padding = 0, ColumnSpacing = 8
+        };
+        dobGrid.Children.Add(new Label { Text = "📅", FontSize = 18, TextColor = Teal, VerticalOptions = LayoutOptions.Center });
+        Grid.SetColumn(_birthDatePicker, 1); dobGrid.Children.Add(_birthDatePicker);
+        dobBox.Content = dobGrid;
+        cardStack.Children.Add(LabeledField("Date de naissance *", dobBox));
+
+        // ── Email ─────────────────────────────────────────────────────
+        _emailEntry = DEntry("Email *", Keyboard.Email);
+        cardStack.Children.Add(InputBox("@", _emailEntry, isTealText: true));
+
+        // ── Mot de passe ──────────────────────────────────────────────
+        _passwordEntry = DEntry("Mot de passe *");
+        _passwordEntry.IsPassword = true;
+        var eyeLbl = new Label { Text = "👁", FontSize = 18, TextColor = Sub, VerticalOptions = LayoutOptions.Center };
+        eyeLbl.GestureRecognizers.Add(new TapGestureRecognizer
+            { Command = new Command(() => _passwordEntry.IsPassword = !_passwordEntry.IsPassword) });
+        cardStack.Children.Add(InputBox("🔒", _passwordEntry, trailing: eyeLbl));
+
+        // ── Checkboxes ────────────────────────────────────────────────
+        cardStack.Children.Add(CheckRow(ref _cguCheck, ref _acceptCgu,
+            "J'accepte les ", "Conditions Générales", " d'utilisation du service."));
+        cardStack.Children.Add(CheckRow(ref _privacyCheck, ref _acceptPrivacy,
+            "J'accepte ", "la politique de confidentialité", ""));
+
+        // ── CNDP notice ───────────────────────────────────────────────
+        cardStack.Children.Add(new Frame
+        {
+            BackgroundColor = Color.FromArgb("#E8F4F7"),
+            BorderColor = Color.FromArgb("#B0D8E5"),
+            CornerRadius = 8, Padding = new Thickness(14, 12), HasShadow = false,
             Content = new Label
             {
-                Text = text,
-                TextColor = Color.FromArgb("#1E293B"),
-                FontSize = 14
+                Text = "Conformément à la loi 09-08, vous disposez d'un droit d'accès, de rectification et d'opposition au traitement de vos données personnelles. Ce traitement a été autorisé par la CNDP sous le N° A-S-908/2023",
+                FontSize = 11, TextColor = Color.FromArgb("#2E6E82"),
+                LineBreakMode = LineBreakMode.WordWrap
             }
-        };
-        frame.GestureRecognizers.Add(new TapGestureRecognizer
-        {
-            Command = new Command(() => SelectGender(gender))
         });
-        return frame;
+
+        cardStack.Children.Add(new Label
+            { Text = "Champs obligatoires *", FontSize = 11, TextColor = Color.FromArgb("#EF4444") });
+
+        // ── Error ─────────────────────────────────────────────────────
+        _errorLabel = new Label { TextColor = Color.FromArgb("#DC2626"), FontSize = 13 };
+        _errorFrame = new Frame { BackgroundColor = Color.FromArgb("#FEF2F2"), BorderColor = Color.FromArgb("#FECACA"),
+            CornerRadius = 8, Padding = 12, IsVisible = false, HasShadow = false, Content = _errorLabel };
+        cardStack.Children.Add(_errorFrame);
+
+        // ── S'inscrire button (right-aligned) ─────────────────────────
+        _registerBtn = new Button
+        {
+            Text = "S'inscrire",
+            BackgroundColor = Teal, TextColor = Colors.White,
+            FontAttributes = FontAttributes.Bold, FontSize = 15,
+            CornerRadius = 8, HeightRequest = 50,
+            WidthRequest = 160, HorizontalOptions = LayoutOptions.End
+        };
+        _registerBtn.Clicked += RegisterButton_Clicked;
+        cardStack.Children.Add(_registerBtn);
+
+        _spinner = new ActivityIndicator { Color = Teal, IsRunning = false, IsVisible = false,
+            HorizontalOptions = LayoutOptions.Center };
+        cardStack.Children.Add(_spinner);
+
+        // ── Login link ────────────────────────────────────────────────
+        var loginRow = new HorizontalStackLayout
+            { HorizontalOptions = LayoutOptions.Center, Spacing = 4, Margin = new Thickness(0, 6, 0, 0) };
+        loginRow.Children.Add(new Label
+            { Text = "Vous avez déjà un compte?", FontSize = 13, TextColor = Sub });
+        var loginLink = new Label
+            { Text = "Connectez-vous à votre compte", FontSize = 13, TextColor = Teal, FontAttributes = FontAttributes.Bold };
+        loginLink.GestureRecognizers.Add(new TapGestureRecognizer
+            { Command = new Command(async () => await Navigation.PopAsync()) });
+        loginRow.Children.Add(loginLink);
+        cardStack.Children.Add(loginRow);
+
+        // ── Footer ────────────────────────────────────────────────────
+        cardStack.Children.Add(new Label
+        {
+            Text = "©Copyrights MediCare+ 2026 – Tous droits réservés.",
+            FontSize = 11, TextColor = Color.FromArgb("#9CA3AF"),
+            HorizontalOptions = LayoutOptions.Center,
+            Margin = new Thickness(0, 8, 0, 0)
+        });
+
+        card.Content = new ScrollView { Content = cardStack };
+        Grid.SetRow(card, 1);
+        root.Children.Add(card);
+
+        Content = new ScrollView
+        {
+            Content = root,
+            BackgroundColor = Teal
+        };
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    private static Entry DEntry(string placeholder, Keyboard? kb = null) => new()
+    {
+        Placeholder = placeholder, Keyboard = kb ?? Keyboard.Default,
+        BackgroundColor = Colors.Transparent, HeightRequest = 50,
+        TextColor = Navy, PlaceholderColor = Sub, FontSize = 14
+    };
+
+    private static View InputBox(string icon, Entry entry, View? trailing = null, bool isTealText = false)
+    {
+        var cols = trailing != null
+            ? new ColumnDefinitionCollection { new(GridLength.Auto), new(GridLength.Star), new(GridLength.Auto) }
+            : new ColumnDefinitionCollection { new(GridLength.Auto), new(GridLength.Star) };
+        var grid = new Grid { ColumnDefinitions = cols, Padding = new Thickness(12, 0), ColumnSpacing = 8 };
+        grid.Children.Add(new Label { Text = icon, FontSize = 17,
+            TextColor = isTealText ? Teal : Teal, VerticalOptions = LayoutOptions.Center });
+        Grid.SetColumn(entry, 1); grid.Children.Add(entry);
+        if (trailing != null) { Grid.SetColumn(trailing, 2); grid.Children.Add(trailing); }
+        return new Frame { BorderColor = Border, CornerRadius = 8, Padding = 0, HasShadow = false, BackgroundColor = Colors.White, Content = grid };
+    }
+
+    private static View LabeledField(string label, View field) =>
+        new VerticalStackLayout { Spacing = 6, Children =
+        {
+            new Label { Text = label, FontSize = 12, FontAttributes = FontAttributes.Bold, TextColor = Navy },
+            field
+        }};
+
+    private Frame GenderBtn(string text, string gender)
+    {
+        var f = new Frame
+        {
+            BackgroundColor = Color.FromArgb("#F3F4F6"), CornerRadius = 8,
+            Padding = new Thickness(10, 10), BorderColor = Border, HasShadow = false,
+            Content = new Label { Text = text, FontSize = 12, TextColor = Navy,
+                HorizontalOptions = LayoutOptions.Center, HorizontalTextAlignment = TextAlignment.Center }
+        };
+        f.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => SelectGender(gender)) });
+        return f;
     }
 
     private void SelectGender(string gender)
     {
         _selectedGender = gender;
-        _maleBtn.BackgroundColor = gender == "Male"
-            ? Color.FromArgb("#DBEAFE") : Color.FromArgb("#F3F4F6");
-        _femaleBtn.BackgroundColor = gender == "Female"
-            ? Color.FromArgb("#DBEAFE") : Color.FromArgb("#F3F4F6");
-        _otherBtn.BackgroundColor = gender == "Other"
-            ? Color.FromArgb("#DBEAFE") : Color.FromArgb("#F3F4F6");
+        _maleBtn.BackgroundColor   = gender == "Homme" ? Teal : Color.FromArgb("#F3F4F6");
+        _femaleBtn.BackgroundColor = gender == "Femme" ? Teal : Color.FromArgb("#F3F4F6");
+        ((Label)_maleBtn.Content).TextColor   = gender == "Homme" ? Colors.White : Navy;
+        ((Label)_femaleBtn.Content).TextColor = gender == "Femme" ? Colors.White : Navy;
     }
 
-    private void ShowError(string msg)
+    private View CheckRow(ref Frame checkFrame, ref bool value, string pre, string link, string post)
     {
-        _errorLabel.Text = msg;
-        _errorFrame.IsVisible = true;
+        var f = checkFrame = new Frame
+        {
+            WidthRequest = 20, HeightRequest = 20, CornerRadius = 4,
+            BackgroundColor = Colors.White, BorderColor = Border,
+            HasShadow = false, Padding = 0
+        };
+        var localRef = false;
+        var tap = new TapGestureRecognizer
+        {
+            Command = new Command(() =>
+            {
+                localRef = !localRef;
+                f.BackgroundColor = localRef ? Teal : Colors.White;
+                f.Content = localRef
+                    ? new Label { Text = "✓", FontSize = 11, TextColor = Colors.White,
+                        HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
+                    : null;
+            })
+        };
+        f.GestureRecognizers.Add(tap);
+
+        var row = new HorizontalStackLayout { Spacing = 8 };
+        row.Children.Add(f);
+        var fullText = pre + link + post;
+        var textLbl = new Label { FontSize = 13, VerticalOptions = LayoutOptions.Center };
+        var span1 = new Span { Text = pre, TextColor = Navy };
+        var span2 = new Span { Text = link, TextColor = Teal, FontAttributes = FontAttributes.Bold };
+        var span3 = new Span { Text = post, TextColor = Navy };
+        textLbl.FormattedText = new FormattedString();
+        textLbl.FormattedText.Spans.Add(span1);
+        textLbl.FormattedText.Spans.Add(span2);
+        textLbl.FormattedText.Spans.Add(span3);
+        row.Children.Add(textLbl);
+        return row;
     }
 
     private async void RegisterButton_Clicked(object sender, EventArgs e)
     {
         _errorFrame.IsVisible = false;
 
-        if (string.IsNullOrWhiteSpace(_firstNameEntry.Text) ||
-            string.IsNullOrWhiteSpace(_lastNameEntry.Text) ||
-            string.IsNullOrWhiteSpace(_emailEntry.Text) ||
-            string.IsNullOrWhiteSpace(_passwordEntry.Text))
-        {
-            ShowError("Please fill all required fields");
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(_firstNameEntry.Text) || string.IsNullOrWhiteSpace(_lastNameEntry.Text)
+            || string.IsNullOrWhiteSpace(_emailEntry.Text) || string.IsNullOrWhiteSpace(_passwordEntry.Text)
+            || string.IsNullOrWhiteSpace(_phoneEntry.Text))
+        { ShowError("Veuillez remplir tous les champs obligatoires"); return; }
 
-        if (_passwordEntry.Text != _confirmPasswordEntry.Text)
-        {
-            ShowError("Passwords do not match");
-            return;
-        }
-
+        _registerBtn.IsEnabled = false; _registerBtn.Text = "Inscription...";
+        _spinner.IsRunning = true; _spinner.IsVisible = true;
         try
         {
-            var result = await _api.RegisterPatientAsync(
-                new RegisterPatientRequest
-                {
-                    FirstName = _firstNameEntry.Text,
-                    LastName = _lastNameEntry.Text,
-                    Email = _emailEntry.Text,
-                    Password = _passwordEntry.Text,
-                    DateOfBirth = _birthDatePicker.Date,
-                    Gender = _selectedGender,
-                    PhoneNumber = _phoneEntry.Text ?? "",
-                    City = _cityEntry.Text,
-                    BloodType = _bloodTypePicker.SelectedItem?.ToString(),
-                    Height = decimal.TryParse(_heightEntry.Text, out var h)
-                        ? h : null,
-                    Weight = decimal.TryParse(_weightEntry.Text, out var w)
-                        ? w : null,
-                    Allergies = _allergiesEditor.Text,
-                    ChronicDiseases = _chronicEditor.Text,
-                    PreviousIllnesses = _previousIllnessesEditor.Text,
-                    CurrentMedications = _medicationsEditor.Text,
-                    InsuranceProvider = _insuranceProviderEntry.Text,
-                    InsuranceNumber = _insuranceNumberEntry.Text,
-                    EmergencyContactName = _emergencyNameEntry.Text,
-                    EmergencyContactPhone = _emergencyPhoneEntry.Text
-                });
+            var result = await _api.RegisterPatientAsync(new RegisterPatientRequest
+            {
+                FirstName = _firstNameEntry.Text.Trim(),
+                LastName  = _lastNameEntry.Text.Trim(),
+                Email     = _emailEntry.Text.Trim(),
+                Password  = _passwordEntry.Text,
+                DateOfBirth    = _birthDatePicker.Date,
+                Gender         = _selectedGender,
+                PhoneNumber    = _phoneEntry.Text.Trim(),
+                City = null, BloodType = null, Height = null, Weight = null,
+                Allergies = null, ChronicDiseases = null, PreviousIllnesses = null,
+                CurrentMedications = null, InsuranceProvider = null, InsuranceNumber = null,
+                EmergencyContactName = null, EmergencyContactPhone = null
+            });
 
             if (result.Success)
             {
                 Preferences.Set("Token", result.Token ?? "");
-                Preferences.Set("UserId",
-                    result.UserId?.ToString() ?? "");
-                Preferences.Set("ProfileId",
-                    result.ProfileId?.ToString() ?? "");
+                Preferences.Set("UserId", result.UserId?.ToString() ?? "");
+                Preferences.Set("ProfileId", result.ProfileId?.ToString() ?? "");
                 Preferences.Set("Role", "Patient");
                 Preferences.Set("FullName", result.FullName ?? "");
-
+                var signalR = ServiceHelper.GetService<SignalRService>();
+                await signalR.ConnectAsync();
                 Application.Current!.MainPage = new NavigationPage(
-                    new PatientDashboardPage(
-                        ServiceHelper.GetService<ApiService>()));
+                    new PatientDashboardPage(ServiceHelper.GetService<ApiService>(), signalR));
             }
-            else
-                ShowError(result.Message ?? "Registration failed");
+            else ShowError(result.Message ?? "Échec de l'inscription");
         }
-        catch (Exception ex)
-        {
-            ShowError($"Error: {ex.Message}");
-        }
+        catch (Exception ex) { ShowError($"Erreur: {ex.Message}"); }
+        finally { _registerBtn.IsEnabled = true; _registerBtn.Text = "S'inscrire"; _spinner.IsRunning = false; _spinner.IsVisible = false; }
     }
+
+    private void ShowError(string msg) { _errorLabel.Text = msg; _errorFrame.IsVisible = true; }
 }

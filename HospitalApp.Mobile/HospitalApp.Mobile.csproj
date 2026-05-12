@@ -8,10 +8,38 @@
 		<SingleProject>true</SingleProject>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<ApplicationTitle>MediCare+</ApplicationTitle>
-		<ApplicationId>com.hospital.medicare</ApplicationId>
+		<!-- Default flavor = Doctor for development -->
+		<ApplicationTitle>MediCare+ Médecin</ApplicationTitle>
+		<ApplicationId>com.hospital.medicare.doctor</ApplicationId>
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
+		<DefineConstants>$(DefineConstants);DOCTOR_APP</DefineConstants>
+	</PropertyGroup>
+
+	<!-- ── Patient flavor ──────────────────────────────────────── -->
+	<PropertyGroup Condition="'$(AppFlavor)'=='Patient'">
+		<ApplicationTitle>MediCare+ Patient</ApplicationTitle>
+		<ApplicationId>com.hospital.medicare.patient</ApplicationId>
+		<DefineConstants>$(DefineConstants);PATIENT_APP</DefineConstants>
+	</PropertyGroup>
+
+	<!-- ── Doctor flavor ───────────────────────────────────────── -->
+	<PropertyGroup Condition="'$(AppFlavor)'=='Doctor'">
+		<ApplicationTitle>MediCare+ Médecin</ApplicationTitle>
+		<ApplicationId>com.hospital.medicare.doctor</ApplicationId>
+		<DefineConstants>$(DefineConstants);DOCTOR_APP</DefineConstants>
+	</PropertyGroup>
+
+	<!-- ── Physical phone (LAN debug) ──────────────────────────── -->
+	<PropertyGroup Condition="'$(AppFlavor)'=='PhonePatient'">
+		<ApplicationTitle>MediCare+ Patient</ApplicationTitle>
+		<ApplicationId>com.hospital.medicare.patient</ApplicationId>
+		<DefineConstants>$(DefineConstants);PATIENT_APP;PHONE_DEBUG</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(AppFlavor)'=='PhoneDoctor'">
+		<ApplicationTitle>MediCare+ Médecin</ApplicationTitle>
+		<ApplicationId>com.hospital.medicare.doctor</ApplicationId>
+		<DefineConstants>$(DefineConstants);DOCTOR_APP;PHONE_DEBUG</DefineConstants>
 	</PropertyGroup>
 
 	<ItemGroup>

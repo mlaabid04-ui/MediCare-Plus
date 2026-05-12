@@ -16,8 +16,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Railway injects $PORT at runtime — listen on it
-ENV ASPNETCORE_URLS=http://+:8080
+# Railway injects PORT at runtime; Program.cs reads it via UseUrls()
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "HospitalApp.API.dll"]

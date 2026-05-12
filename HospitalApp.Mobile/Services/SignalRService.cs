@@ -11,6 +11,8 @@ public class SignalRService
 
     public event Action<NotificationDto>? NotificationReceived;
     public event Action<IncomingCallDto>? IncomingCallReceived;
+    public event Action<IncomingChatMessageDto>? MessageReceived;
+    public event Action<IncomingChatMessageDto>? MessageSent;
 
     public async Task ConnectAsync()
     {
@@ -35,16 +37,24 @@ public class SignalRService
             .WithAutomaticReconnect()
             .Build();
 
+        ChatHub.On<IncomingChatMessageDto>("ReceiveMessage", msg =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => MessageReceived?.Invoke(msg));
+        });
+
+        ChatHub.On<IncomingChatMessageDto>("MessageSent", msg =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => MessageSent?.Invoke(msg));
+        });
+
         NotificationHub.On<NotificationDto>("ReceiveNotification", notif =>
         {
-            MainThread.BeginInvokeOnMainThread(() =>
-                NotificationReceived?.Invoke(notif));
+            MainThread.BeginInvokeOnMainThread(() => NotificationReceived?.Invoke(notif));
         });
 
         VideoHub.On<IncomingCallDto>("IncomingCall", call =>
         {
-            MainThread.BeginInvokeOnMainThread(() =>
-                IncomingCallReceived?.Invoke(call));
+            MainThread.BeginInvokeOnMainThread(() => IncomingCallReceived?.Invoke(call));
         });
 
         try
@@ -59,6 +69,24 @@ public class SignalRService
         }
     }
 
+    public async Task SendMessageAsync(string receiverId, string message, string? appointmentId = null)
+    {
+        if (ChatHub?.State == HubConnectionState.Connected)
+            await ChatHub.InvokeAsync("SendMessage", receiverId, message, appointmentId);
+    }
+
+    public async Task MarkMessagesReadAsync(string senderId)
+    {
+        if (ChatHub?.State == HubConnectionState.Connected)
+            await ChatHub.InvokeAsync("MarkMessagesRead", senderId);
+    }
+
+    public async Task InitiateCallAsync(string targetUserId, bool isVideo)
+    {
+        if (VideoHub?.State == HubConnectionState.Connected)
+            await VideoHub.InvokeAsync("InitiateCall", targetUserId, isVideo);
+    }
+
     public async Task DisconnectAsync()
     {
         if (ChatHub != null) await ChatHub.StopAsync();
@@ -66,8 +94,7 @@ public class SignalRService
         if (VideoHub != null) await VideoHub.StopAsync();
     }
 
-    public bool IsConnected =>
-        ChatHub?.State == HubConnectionState.Connected;
+    public bool IsConnected => ChatHub?.State == HubConnectionState.Connected;
 }
 
 public static class ServiceHelper

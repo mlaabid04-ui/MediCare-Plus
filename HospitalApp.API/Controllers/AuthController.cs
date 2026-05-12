@@ -42,6 +42,22 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("register-doctor")]
+    public async Task<IActionResult> RegisterDoctor([FromBody] RegisterDoctorDto dto)
+    {
+        try
+        {
+            var result = await _auth.RegisterDoctorAsync(dto);
+            if (!result.Success)
+                return BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
+    }
+
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto dto)
     {

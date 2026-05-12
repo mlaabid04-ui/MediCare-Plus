@@ -3,6 +3,7 @@ using System;
 using HospitalApp.API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HospitalApp.API.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260505123406_AddDoctorLocation")]
+    partial class AddDoctorLocation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -120,16 +123,7 @@ namespace HospitalApp.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("Address")
-                        .HasColumnType("text");
-
-                    b.Property<string>("AddressAr")
-                        .HasColumnType("text");
-
                     b.Property<string>("Biography")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CabinetImages")
                         .HasColumnType("text");
 
                     b.Property<string>("City")
@@ -141,26 +135,14 @@ namespace HospitalApp.API.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
-                    b.Property<string>("Diplomas")
-                        .HasColumnType("text");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("FirstNameAr")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastNameAr")
                         .HasColumnType("text");
 
                     b.Property<string>("HospitalName")
                         .HasColumnType("text");
 
                     b.Property<string>("HospitalSection")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Languages")
                         .HasColumnType("text");
 
                     b.Property<string>("LastName")
@@ -180,18 +162,11 @@ namespace HospitalApp.API.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("text");
 
-                    b.Property<string>("PostalCode")
-                        .HasColumnType("text");
-
                     b.Property<decimal>("Rating")
                         .HasColumnType("decimal(3,2)");
 
                     b.Property<Guid>("SpecialtyId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("SlotDurationMinutes")
-                        .HasDefaultValue(30)
-                        .HasColumnType("integer");
 
                     b.Property<int>("TotalReviews")
                         .HasColumnType("integer");
@@ -218,11 +193,6 @@ namespace HospitalApp.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<string>("ConsultationType")
-                        .IsRequired()
-                        .HasDefaultValue("Présentiel")
-                        .HasColumnType("text");
-
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("integer");
 
@@ -243,32 +213,6 @@ namespace HospitalApp.API.Migrations
                     b.HasIndex("DoctorId");
 
                     b.ToTable("DoctorSchedules");
-                });
-
-            modelBuilder.Entity("HospitalApp.API.Models.DoctorVacation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DoctorId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoctorId");
-
-                    b.ToTable("DoctorVacations");
                 });
 
             modelBuilder.Entity("HospitalApp.API.Models.Notification", b =>
@@ -343,44 +287,6 @@ namespace HospitalApp.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Nurses");
-                });
-
-            modelBuilder.Entity("HospitalApp.API.Models.PatientDocument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("OriginalName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("StoredName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientId");
-
-                    b.ToTable("PatientDocuments");
                 });
 
             modelBuilder.Entity("HospitalApp.API.Models.Patient", b =>
@@ -627,70 +533,6 @@ namespace HospitalApp.API.Migrations
                             Description = "Medical imaging",
                             IconName = "xray",
                             Name = "Radiology"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000011"),
-                            Color = "#F9A825",
-                            Description = "Soins dentaires et bucco-dentaires",
-                            IconName = "tooth",
-                            Name = "Dentaire"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000012"),
-                            Color = "#43A047",
-                            Description = "Système digestif et gastro-intestinal",
-                            IconName = "stomach",
-                            Name = "Gastrologie"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000013"),
-                            Color = "#EF6C00",
-                            Description = "Rééducation physique et motrice",
-                            IconName = "physio",
-                            Name = "Kinésithérapie"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000014"),
-                            Color = "#1565C0",
-                            Description = "Santé en milieu professionnel",
-                            IconName = "work",
-                            Name = "Médecine du travail"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000015"),
-                            Color = "#7B1FA2",
-                            Description = "Hormones et glandes endocrines",
-                            IconName = "hormone",
-                            Name = "Endocrinologie"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000016"),
-                            Color = "#E65100",
-                            Description = "Oreille, nez et gorge",
-                            IconName = "ear",
-                            Name = "ORL"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000017"),
-                            Color = "#00838F",
-                            Description = "Poumons et système respiratoire",
-                            IconName = "lungs",
-                            Name = "Pneumologie"
-                        },
-                        new
-                        {
-                            Id = new Guid("11111111-0000-0000-0000-000000000018"),
-                            Color = "#546E7A",
-                            Description = "Articulations, os et maladies auto-immunes",
-                            IconName = "joint",
-                            Name = "Rhumatologie"
                         });
                 });
 
@@ -837,17 +679,6 @@ namespace HospitalApp.API.Migrations
                     b.Navigation("Doctor");
                 });
 
-            modelBuilder.Entity("HospitalApp.API.Models.DoctorVacation", b =>
-                {
-                    b.HasOne("HospitalApp.API.Models.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Doctor");
-                });
-
             modelBuilder.Entity("HospitalApp.API.Models.Notification", b =>
                 {
                     b.HasOne("HospitalApp.API.Models.User", "User")
@@ -879,17 +710,6 @@ namespace HospitalApp.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HospitalApp.API.Models.PatientDocument", b =>
-                {
-                    b.HasOne("HospitalApp.API.Models.Patient", "Patient")
-                        .WithMany("Documents")
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Patient");
                 });
 
             modelBuilder.Entity("HospitalApp.API.Models.RefreshToken", b =>
@@ -932,7 +752,6 @@ namespace HospitalApp.API.Migrations
             modelBuilder.Entity("HospitalApp.API.Models.Patient", b =>
                 {
                     b.Navigation("Appointments");
-                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("HospitalApp.API.Models.Specialty", b =>

@@ -15,6 +15,8 @@ public interface IAppointmentService
     Task<List<AppointmentDto>> GetPatientAppointmentsAsync(Guid patientId);
     Task<bool> CancelAppointmentAsync(Guid appointmentId, Guid userId);
     Task<bool> UpdateAppointmentStatusAsync(Guid appointmentId, string status);
+    Task<List<PrescriptionDto>> GetPatientPrescriptionsAsync(Guid patientId);
+    Task<bool> WritePrescriptionAsync(Guid appointmentId, string prescription);
 }
 
 public class AppointmentService : IAppointmentService
@@ -161,6 +163,7 @@ public class AppointmentService : IAppointmentService
             DoctorName = $"Dr. {a.Doctor?.FirstName} {a.Doctor?.LastName}",
             DoctorSpecialty = a.Doctor?.Specialty?.Name,
             DoctorImageUrl = a.Doctor?.User?.ProfileImageUrl,
+            DoctorUserId = a.Doctor?.UserId,
             AppointmentDate = a.AppointmentDate,
             StartTime = a.StartTime,
             EndTime = a.EndTime,
@@ -210,6 +213,36 @@ public class AppointmentService : IAppointmentService
         await _db.SaveChangesAsync();
         return true;
     }
+
+    public async Task<List<PrescriptionDto>> GetPatientPrescriptionsAsync(Guid patientId)
+    {
+        var appointments = await _db.Appointments
+            .Include(a => a.Doctor).ThenInclude(d => d!.Specialty)
+            .Include(a => a.Doctor).ThenInclude(d => d!.User)
+            .Where(a => a.PatientId == patientId && !string.IsNullOrEmpty(a.Prescription))
+            .OrderByDescending(a => a.AppointmentDate)
+            .ToListAsync();
+
+        return appointments.Select(a => new PrescriptionDto
+        {
+            AppointmentId  = a.Id,
+            DoctorName     = $"Dr. {a.Doctor?.FirstName} {a.Doctor?.LastName}",
+            DoctorSpecialty = a.Doctor?.Specialty?.Name,
+            AppointmentDate = a.AppointmentDate,
+            Prescription   = a.Prescription ?? "",
+            ConsultationType = a.ConsultationType
+        }).ToList();
+    }
+
+    public async Task<bool> WritePrescriptionAsync(Guid appointmentId, string prescription)
+    {
+        var appointment = await _db.Appointments.FindAsync(appointmentId);
+        if (appointment == null) return false;
+        appointment.Prescription = prescription;
+        appointment.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return true;
+    }
 }
 
 // DTOs
@@ -245,10 +278,27 @@ public class AppointmentDto
     public string? DoctorName { get; set; }
     public string? DoctorSpecialty { get; set; }
     public string? DoctorImageUrl { get; set; }
+    public Guid? DoctorUserId { get; set; }
+    public Guid? PatientUserId { get; set; }
     public DateTime AppointmentDate { get; set; }
     public TimeSpan StartTime { get; set; }
     public TimeSpan EndTime { get; set; }
     public string Status { get; set; } = "";
     public string Reason { get; set; } = "";
     public string ConsultationType { get; set; } = "";
+}
+
+public class PrescriptionDto
+{
+    public Guid AppointmentId { get; set; }
+    public string? DoctorName { get; set; }
+    public string? DoctorSpecialty { get; set; }
+    public DateTime AppointmentDate { get; set; }
+    public string Prescription { get; set; } = "";
+    public string ConsultationType { get; set; } = "";
+}
+
+public class WritePrescriptionDto
+{
+    public string Prescription { get; set; } = "";
 }

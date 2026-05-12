@@ -103,10 +103,13 @@ public class AppointmentReminderService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken); // wait for host to fully start
         while (!stoppingToken.IsCancellationRequested)
         {
-            await CheckUpcomingAppointments();
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            try { await CheckUpcomingAppointments(); }
+            catch (Exception ex) { _logger.LogError(ex, "AppointmentReminderService error"); }
+            try { await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); }
+            catch (OperationCanceledException) { break; }
         }
     }
 
