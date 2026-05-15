@@ -1,3 +1,5 @@
+using HospitalApp.API.Data;
+using HospitalApp.API.Models;
 using HospitalApp.API.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +12,8 @@ namespace HospitalApp.API.Controllers;
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationService _service;
-    public NotificationsController(INotificationService svc) { _service = svc; }
+    private readonly AppDbContext _db;
+    public NotificationsController(INotificationService svc, AppDbContext db) { _service = svc; _db = db; }
 
     [HttpGet]
     public async Task<IActionResult> Get()
@@ -31,6 +34,17 @@ public class NotificationsController : ControllerBase
     {
         var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
         await _service.MarkAllAsReadAsync(userId);
+        return Ok();
+    }
+
+    [HttpPut("fcm-token")]
+    public async Task<IActionResult> RegisterFcmToken([FromBody] FcmTokenDto dto)
+    {
+        var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+        user.FcmToken = dto.Token;
+        await _db.SaveChangesAsync();
         return Ok();
     }
 }

@@ -8,7 +8,7 @@ public static class AppConfig
 #elif DEBUG
     private const string _defaultBase = "http://10.0.2.2:5001";
 #else
-    private const string _defaultBase = "https://medicare-plus.railway.app";
+    private const string _defaultBase = "https://buffalo-immunity-slang.ngrok-free.dev";
 #endif
 
     // ── Runtime-overridable URLs (debug only; Release always uses Railway) ──

@@ -17,6 +17,18 @@ public class User
     public DateTime? LastLogin { get; set; }
     public string? ProfileImageUrl { get; set; }
     public bool NotificationsEnabled { get; set; } = true;
+    public string? FcmToken { get; set; }
+}
+
+public class CreateReviewDto
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+}
+
+public class FcmTokenDto
+{
+    public string Token { get; set; } = "";
 }
 
 public class Specialty

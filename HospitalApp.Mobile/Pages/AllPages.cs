@@ -757,6 +757,15 @@ public class PatientAppointmentsPage : ContentPage
             actionRow.Children.Add(cancelBtn);
         }
 
+        if (appt.Status == "Completed")
+        {
+            var rateBtn = ActionChip("⭐ Évaluer", "#FEF9C3", "#92400E", "#FDE68A");
+            var apptRef = appt;
+            rateBtn.GestureRecognizers.Add(new TapGestureRecognizer
+                { Command = new Command(async () => await Navigation.PushAsync(new RatingPage(_api, apptRef))) });
+            actionRow.Children.Add(rateBtn);
+        }
+
         if (actionRow.Children.Any())
             cardContent.Children.Add(actionRow);
 
@@ -2424,6 +2433,8 @@ public class DoctorProfilePage : ContentPage
     private readonly ApiService _api;
     private readonly SignalRService? _signalR;
     private readonly DoctorDetailDto _doc;
+    private readonly VerticalStackLayout _reviewsStack = new() { Spacing = 10 };
+    private bool _reviewsLoaded;
 
     private static readonly Color Teal  = Color.FromArgb("#4A8B9E");
     private static readonly Color Navy  = Color.FromArgb("#1E2D4A");
@@ -2434,6 +2445,53 @@ public class DoctorProfilePage : ContentPage
         NavigationPage.SetHasNavigationBar(this, false);
         BackgroundColor = Colors.White;
         BuildUI();
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (!_reviewsLoaded) { _reviewsLoaded = true; await LoadReviewsAsync(); }
+    }
+
+    private async Task LoadReviewsAsync()
+    {
+        _reviewsStack.Children.Clear();
+        _reviewsStack.Children.Add(new ActivityIndicator { IsRunning = true, Color = Color.FromArgb("#126B82"), HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 8) });
+        var reviews = await _api.GetDoctorReviewsAsync(_doc.Id);
+        _reviewsStack.Children.Clear();
+        if (!reviews.Any())
+        {
+            _reviewsStack.Children.Add(new Label { Text = "Aucun avis pour ce médecin.", FontSize = 13, TextColor = Color.FromArgb("#64748B"), HorizontalOptions = LayoutOptions.Center, Margin = new Thickness(0, 8) });
+            return;
+        }
+        foreach (var r in reviews.Take(5))
+        {
+            _reviewsStack.Children.Add(new Frame
+            {
+                BackgroundColor = Color.FromArgb("#F8FAFC"), CornerRadius = 10, Padding = new Thickness(12),
+                HasShadow = false, BorderColor = Color.FromArgb("#E2E8F0"),
+                Content = new VerticalStackLayout
+                {
+                    Spacing = 4,
+                    Children =
+                    {
+                        new HorizontalStackLayout
+                        {
+                            Spacing = 8,
+                            Children =
+                            {
+                                new Label { Text = r.StarsDisplay, FontSize = 14 },
+                                new Label { Text = r.PatientName, FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#0F2540"), VerticalOptions = LayoutOptions.Center }
+                            }
+                        },
+                        string.IsNullOrEmpty(r.Comment)
+                            ? (View)new BoxView { HeightRequest = 0 }
+                            : new Label { Text = r.Comment, FontSize = 12, TextColor = Color.FromArgb("#374151"), LineBreakMode = LineBreakMode.WordWrap },
+                        new Label { Text = r.TimeDisplay, FontSize = 11, TextColor = Color.FromArgb("#94A3B8") }
+                    }
+                }
+            });
+        }
     }
 
     private void BuildUI()
@@ -2666,6 +2724,31 @@ public class DoctorProfilePage : ContentPage
             body.Children.Add(langCard);
         }
 
+        // Reviews section
+        var reviewsCard = new Frame
+        {
+            BackgroundColor = Colors.White, CornerRadius = 16, Padding = new Thickness(16),
+            HasShadow = false, BorderColor = Color.FromArgb("#E2E8F0"),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new HorizontalStackLayout
+                    {
+                        Spacing = 8,
+                        Children =
+                        {
+                            new Label { Text = "⭐ Avis patients", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1E2D4A") },
+                            new Label { Text = $"({_doc.TotalReviews} avis)", FontSize = 12, TextColor = Color.FromArgb("#64748B"), VerticalOptions = LayoutOptions.Center }
+                        }
+                    },
+                    _reviewsStack
+                }
+            }
+        };
+        body.Children.Add(reviewsCard);
+
         // Bottom spacing
         body.Children.Add(new BoxView { HeightRequest = 20, BackgroundColor = Colors.Transparent });
         var profileScroll = new ScrollView { Content = body };
@@ -2736,7 +2819,14 @@ public class SpecialtySelectionPage : ContentPage
             ("🦿", "Rhumatologie",       Guid.Parse("11111111-0000-0000-0000-000000000018"), "#FAFAFA"),
         };
 
-        var outerStack = new VerticalStackLayout { Spacing = 0 };
+        var outerGrid = new Grid
+        {
+            RowDefinitions = new RowDefinitionCollection
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
+            }
+        };
 
         // Header
         var specHeader = new Grid { Padding = new Thickness(20, 52, 20, 28) };
@@ -2758,7 +2848,8 @@ public class SpecialtySelectionPage : ContentPage
         shText.Children.Add(new Label { Text = "Sélectionnez votre domaine médical", FontSize = 12, TextColor = Colors.White.WithAlpha(0.75f) });
         shRow.Children.Add(shText);
         specHeader.Children.Add(shRow);
-        outerStack.Children.Add(specHeader);
+        Grid.SetRow(specHeader, 0);
+        outerGrid.Children.Add(specHeader);
 
         var innerStack = new VerticalStackLayout { Padding = new Thickness(16, 16), Spacing = 12 };
 
@@ -2816,8 +2907,10 @@ public class SpecialtySelectionPage : ContentPage
         }
 
         innerStack.Children.Add(grid);
-        outerStack.Children.Add(new ScrollView { Content = innerStack });
-        Content = outerStack;
+        var scrollView = new ScrollView { Content = innerStack };
+        Grid.SetRow(scrollView, 1);
+        outerGrid.Children.Add(scrollView);
+        Content = outerGrid;
     }
 }
 
@@ -3103,6 +3196,172 @@ public class DoctorListPage : ContentPage
             })
         });
         return card;
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// RATING PAGE
+// ═══════════════════════════════════════════════════════
+public class RatingPage : ContentPage
+{
+    private readonly ApiService _api;
+    private readonly AppointmentDto _appointment;
+    private int _selectedRating;
+    private readonly Label[] _stars = new Label[5];
+    private Editor? _commentEditor;
+
+    public RatingPage(ApiService api, AppointmentDto appointment)
+    {
+        _api = api; _appointment = appointment;
+        NavigationPage.SetHasNavigationBar(this, false);
+        BackgroundColor = Color.FromArgb("#F0F7FA");
+        BuildUI();
+    }
+
+    private void BuildUI()
+    {
+        var root = new Grid
+        {
+            RowDefinitions = new RowDefinitionCollection
+            {
+                new RowDefinition { Height = GridLength.Auto },
+                new RowDefinition { Height = GridLength.Star }
+            }
+        };
+
+        var header = new Grid { Padding = new Thickness(20, 52, 20, 28) };
+        header.Background = new LinearGradientBrush
+        {
+            StartPoint = new Point(0, 0), EndPoint = new Point(1, 1),
+            GradientStops = new GradientStopCollection
+            {
+                new GradientStop { Color = Color.FromArgb("#0A3D4A"), Offset = 0f },
+                new GradientStop { Color = Color.FromArgb("#1A8FA8"), Offset = 1f }
+            }
+        };
+        var hRow = new HorizontalStackLayout { Spacing = 12 };
+        var back = new Label { Text = "‹", FontSize = 26, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center };
+        back.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(async () => await Navigation.PopAsync()) });
+        hRow.Children.Add(back);
+        hRow.Children.Add(new Label { Text = "Évaluer le médecin", FontSize = 20, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center });
+        header.Children.Add(hRow);
+        Grid.SetRow(header, 0); root.Children.Add(header);
+
+        var scroll = new ScrollView();
+        var body = new VerticalStackLayout { Padding = new Thickness(20), Spacing = 16 };
+
+        // Doctor info
+        body.Children.Add(new Frame
+        {
+            BackgroundColor = Colors.White, CornerRadius = 16, Padding = new Thickness(16),
+            HasShadow = false, BorderColor = Color.FromArgb("#E2E8F0"),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 4,
+                Children =
+                {
+                    new Label { Text = _appointment.DoctorName ?? "Médecin", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#0F2540") },
+                    new Label { Text = _appointment.DoctorSpecialty ?? "", FontSize = 13, TextColor = Color.FromArgb("#126B82") },
+                    new Label { Text = $"Consultation du {_appointment.AppointmentDate:dd MMM yyyy}", FontSize = 12, TextColor = Color.FromArgb("#64748B") }
+                }
+            }
+        });
+
+        // Star rating
+        var starsRow = new HorizontalStackLayout { Spacing = 8, HorizontalOptions = LayoutOptions.Center };
+        for (int i = 0; i < 5; i++)
+        {
+            var starLbl = new Label { Text = "☆", FontSize = 44, TextColor = Color.FromArgb("#D1D5DB") };
+            _stars[i] = starLbl;
+            var idx = i + 1;
+            starLbl.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command(() => SetRating(idx)) });
+            starsRow.Children.Add(starLbl);
+        }
+
+        var ratingLabels = new[] { "", "Mauvais", "Passable", "Bien", "Très bien", "Excellent" };
+        var ratingHint = new Label { Text = "Sélectionnez une note", FontSize = 13, TextColor = Color.FromArgb("#64748B"), HorizontalOptions = LayoutOptions.Center };
+
+        body.Children.Add(new Frame
+        {
+            BackgroundColor = Colors.White, CornerRadius = 16, Padding = new Thickness(16),
+            HasShadow = false, BorderColor = Color.FromArgb("#E2E8F0"),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 14, HorizontalOptions = LayoutOptions.Fill,
+                Children =
+                {
+                    new Label { Text = "Votre note *", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#0F2540"), HorizontalOptions = LayoutOptions.Center },
+                    starsRow,
+                    ratingHint
+                }
+            }
+        });
+
+        // Store ratingHint reference via closure for SetRating
+        _ratingHint = ratingHint;
+        _ratingLabels = ratingLabels;
+
+        // Comment
+        _commentEditor = new Editor
+        {
+            Placeholder = "Partagez votre expérience (optionnel)...",
+            HeightRequest = 100, BackgroundColor = Colors.Transparent,
+            TextColor = Color.FromArgb("#0F2540"), FontSize = 14
+        };
+        body.Children.Add(new Frame
+        {
+            BackgroundColor = Colors.White, CornerRadius = 16, Padding = new Thickness(16),
+            HasShadow = false, BorderColor = Color.FromArgb("#E2E8F0"),
+            Content = new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    new Label { Text = "Votre avis (optionnel)", FontSize = 14, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#0F2540") },
+                    _commentEditor
+                }
+            }
+        });
+
+        // Submit button
+        var submitBtn = new Button
+        {
+            Text = "Envoyer l'évaluation",
+            BackgroundColor = Color.FromArgb("#126B82"), TextColor = Colors.White,
+            FontSize = 16, FontAttributes = FontAttributes.Bold,
+            CornerRadius = 16, HeightRequest = 56, Margin = new Thickness(0, 8)
+        };
+        submitBtn.Clicked += async (_, _) => await SubmitAsync(submitBtn);
+        body.Children.Add(submitBtn);
+
+        scroll.Content = body;
+        Grid.SetRow(scroll, 1); root.Children.Add(scroll);
+        Content = root;
+    }
+
+    private Label? _ratingHint;
+    private string[]? _ratingLabels;
+
+    private void SetRating(int rating)
+    {
+        _selectedRating = rating;
+        for (int i = 0; i < 5; i++)
+        {
+            _stars[i].Text = i < rating ? "⭐" : "☆";
+            _stars[i].TextColor = i < rating ? Color.FromArgb("#F59E0B") : Color.FromArgb("#D1D5DB");
+        }
+        if (_ratingHint != null && _ratingLabels != null)
+            _ratingHint.Text = _ratingLabels[rating];
+    }
+
+    private async Task SubmitAsync(Button btn)
+    {
+        if (_selectedRating == 0) { await DisplayAlert("", "Veuillez sélectionner une note.", "OK"); return; }
+        btn.IsEnabled = false; btn.Text = "Envoi...";
+        var ok = await _api.SubmitReviewAsync(_appointment.Id, _selectedRating, _commentEditor?.Text?.Trim());
+        if (ok) { await DisplayAlert("✅ Merci!", "Votre évaluation a été envoyée avec succès.", "OK"); await Navigation.PopAsync(); }
+        else { await DisplayAlert("Erreur", "Impossible d'envoyer l'évaluation. Avez-vous déjà évalué ce médecin?", "OK"); }
+        btn.IsEnabled = true; btn.Text = "Envoyer l'évaluation";
     }
 }
 
@@ -3651,7 +3910,14 @@ public class BookAppointmentPage : ContentPage
             var result = await _api.BookAppointmentAsync(DoctorId, _selectedDate, _selectedSlot.StartTime, reason, consultType);
             if (result.Success)
             {
-                await DisplayAlert("✅ Réservé!", "Votre rendez-vous a été confirmé avec succès!", "Parfait!");
+                // Save reminder info in preferences for in-app reminder check
+                Preferences.Set("NextApptDateTime", _selectedDate.Date.Add(_selectedSlot.StartTime).ToString("o"));
+                Preferences.Set("NextApptDoctor", _doctorNameLabel?.Text ?? "votre médecin");
+                AppointmentReminderHelper.ScheduleAndroidReminder(
+                    result.AppointmentId, _selectedDate.Date.Add(_selectedSlot.StartTime),
+                    _doctorNameLabel?.Text ?? "votre médecin");
+
+                await DisplayAlert("✅ Réservé!", "Votre rendez-vous a été confirmé avec succès!\n\n⏰ Un rappel vous sera envoyé 1h avant.", "Parfait!");
                 await Navigation.PopToRootAsync();
             }
             else

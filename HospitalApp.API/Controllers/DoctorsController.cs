@@ -106,4 +106,24 @@ public class DoctorsController : ControllerBase
         await _db.SaveChangesAsync();
         return Ok(new { url });
     }
+
+    [HttpGet("{id}/reviews")]
+    public async Task<IActionResult> GetReviews(Guid id)
+    {
+        var reviews = await _db.Reviews
+            .Include(r => r.Patient).ThenInclude(p => p!.User)
+            .Where(r => r.DoctorId == id)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(r => new
+            {
+                r.Id,
+                r.Rating,
+                r.Comment,
+                r.CreatedAt,
+                PatientName = r.Patient != null ? $"{r.Patient.FirstName} {r.Patient.LastName}" : "Anonyme",
+                PatientImageUrl = r.Patient != null && r.Patient.User != null ? r.Patient.User.ProfileImageUrl : null
+            })
+            .ToListAsync();
+        return Ok(reviews);
+    }
 }

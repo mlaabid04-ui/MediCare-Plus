@@ -560,4 +560,29 @@ public class ApiService
         }
         catch { return new(); }
     }
+
+    // ===== REVIEWS =====
+    public async Task<bool> SubmitReviewAsync(Guid appointmentId, int rating, string? comment)
+    {
+        try
+        {
+            var result = await PostAsync<object>($"appointments/{appointmentId}/review",
+                new CreateReviewRequest { Rating = rating, Comment = comment });
+            return result != null;
+        }
+        catch { return false; }
+    }
+
+    public async Task<List<ReviewDto>> GetDoctorReviewsAsync(Guid doctorId)
+    {
+        try { return await GetAsync<List<ReviewDto>>($"doctors/{doctorId}/reviews") ?? new(); }
+        catch { return new(); }
+    }
+
+    // ===== FCM TOKEN =====
+    public async Task RegisterFcmTokenAsync(string token)
+    {
+        try { await PutAsync<object>("notifications/fcm-token", new { token }); }
+        catch { }
+    }
 }

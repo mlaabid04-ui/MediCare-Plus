@@ -458,3 +458,21 @@ public class SpecialtyDto
         "female" => "🌸", "mind" => "🧘", "xray" => "🔬", _ => "🏥"
     };
 }
+
+public class ReviewDto
+{
+    public Guid Id { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string PatientName { get; set; } = "";
+    public string? PatientImageUrl { get; set; }
+    public string TimeDisplay => CreatedAt.ToString("dd MMM yyyy");
+    public string StarsDisplay => new string('⭐', Rating) + new string('☆', 5 - Rating);
+}
+
+public class CreateReviewRequest
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+}
